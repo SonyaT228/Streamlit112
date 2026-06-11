@@ -10,12 +10,18 @@ st.title("🐱 Cat Health Predictor")
 @st.cache_data
 def load_data():
     df = pd.read_csv('cat_2.csv', sep=';')
+    # Удаляем лишние пробелы из названий колонок
+    df.columns = df.columns.str.strip()
     return df
 
 df = load_data()
 
 # Показываем успешную загрузку
 st.success(f"✅ Data loaded! {len(df)} records found")
+
+# Показываем названия колонок для отладки
+with st.expander("🔧 Column names"):
+    st.write(list(df.columns))
 
 # Показываем первые строки
 st.subheader("📊 Data Preview")
@@ -24,7 +30,7 @@ st.dataframe(df.head(10))
 # Создаем модель
 @st.cache_resource
 def train_model():
-    # Определяем здоровье
+    # Функция определения здоровья (теперь с правильными названиями колонок)
     def is_healthy(row):
         problems = 0
         if row['Age'] > 15:
