@@ -18,23 +18,25 @@ def load_data():
 
 df = load_data()
 
+# Функция определения здоровья
+def is_healthy(row):
+    problems = 0
+    if row['Age'] > 15:
+        problems += 1
+    if row['Weight'] < 2 or row['Weight'] > 8:
+        problems += 1
+    if row['Playing (min.)'] < 20:
+        problems += 1
+    if row['Sleeps (hours)'] < 10 or row['Sleeps (hours)'] > 20:
+        problems += 1
+    return 'Yes' if problems < 2 else 'No'
+
+# Добавляем колонку Healthy в основной датафрейм
+df['Healthy'] = df.apply(is_healthy, axis=1)
+
 # Создаем модель
 @st.cache_resource
 def train_model():
-    def is_healthy(row):
-        problems = 0
-        if row['Age'] > 15:
-            problems += 1
-        if row['Weight'] < 2 or row['Weight'] > 8:
-            problems += 1
-        if row['Playing (min.)'] < 20:
-            problems += 1
-        if row['Sleeps (hours)'] < 10 or row['Sleeps (hours)'] > 20:
-            problems += 1
-        return 'Yes' if problems < 2 else 'No'
-    
-    df['Healthy'] = df.apply(is_healthy, axis=1)
-    
     features = ['Age', 'Weight', 'Playing (min.)', 'Sleeps (hours)']
     X = df[features].fillna(df[features].mean())
     y = df['Healthy']
@@ -113,12 +115,18 @@ with col1:
     if chart_type == "Гистограмма пород":
         st.subheader("Количество кошек по породам")
         breed_counts = filtered_df['Breed'].value_counts()
-        st.bar_chart(breed_counts)
+        if len(breed_counts) > 0:
+            st.bar_chart(breed_counts)
+        else:
+            st.info("Нет данных для отображения")
         
     elif chart_type == "Средний вес по породам":
         st.subheader("Средний вес по породам (кг)")
         avg_weight = filtered_df.groupby('Breed')['Weight'].mean().sort_values(ascending=False)
-        st.bar_chart(avg_weight)
+        if len(avg_weight) > 0:
+            st.bar_chart(avg_weight)
+        else:
+            st.info("Нет данных для отображения")
         
     elif chart_type == "Распределение по возрасту":
         st.subheader("Распределение возраста кошек")
@@ -141,27 +149,40 @@ with col1:
     elif chart_type == "Активность по породам":
         st.subheader("Среднее время игр по породам (мин/день)")
         avg_play = filtered_df.groupby('Breed')['Playing (min.)'].mean().sort_values(ascending=False)
-        st.bar_chart(avg_play)
+        if len(avg_play) > 0:
+            st.bar_chart(avg_play)
+        else:
+            st.info("Нет данных для отображения")
         
     elif chart_type == "Сон по породам":
         st.subheader("Средняя продолжительность сна по породам (часы)")
         avg_sleep = filtered_df.groupby('Breed')['Sleeps (hours)'].mean().sort_values(ascending=False)
-        st.bar_chart(avg_sleep)
+        if len(avg_sleep) > 0:
+            st.bar_chart(avg_sleep)
+        else:
+            st.info("Нет данных для отображения")
         
     elif chart_type == "Соотношение здоровых/нездоровых":
         st.subheader("Здоровье кошек")
         health_counts = filtered_df['Healthy'].value_counts()
-        fig, ax = plt.subplots(figsize=(8, 6))
-        colors_health = ['#2ECC71', '#E74C3C']
-        ax.pie(health_counts.values, labels=['Здоровые', 'Требуют внимания'], 
-               autopct='%1.1f%%', colors=colors_health, startangle=90)
-        ax.set_title('Соотношение здоровых и нездоровых кошек')
-        st.pyplot(fig)
+        if len(health_counts) > 0:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            colors_health = ['#2ECC71', '#E74C3C']
+            labels = ['Здоровые', 'Требуют внимания']
+            ax.pie(health_counts.values, labels=labels[:len(health_counts)], 
+                   autopct='%1.1f%%', colors=colors_health[:len(health_counts)], startangle=90)
+            ax.set_title('Соотношение здоровых и нездоровых кошек')
+            st.pyplot(fig)
+        else:
+            st.info("Нет данных для отображения")
         
     else:  # Сравнение по странам
         st.subheader("Количество кошек по странам")
         country_counts = filtered_df['Country'].value_counts().head(10)
-        st.bar_chart(country_counts)
+        if len(country_counts) > 0:
+            st.bar_chart(country_counts)
+        else:
+            st.info("Нет данных для отображения")
 
 with col2:
     # Дополнительная статистика
@@ -171,7 +192,10 @@ with col2:
     avg_weight_val = filtered_df['Weight'].mean()
     avg_play_val = filtered_df['Playing (min.)'].mean()
     avg_sleep_val = filtered_df['Sleeps (hours)'].mean()
-    healthy_percent = (filtered_df['Healthy'] == 'Yes').mean() * 100
+    
+    # Исправлено: используем filtered_df, в котором уже есть колонка Healthy
+    healthy_count = (filtered_df['Healthy'] == 'Yes').sum()
+    healthy_percent = (healthy_count / len(filtered_df)) * 100 if len(filtered_df) > 0 else 0
     
     st.metric("Средний возраст", f"{avg_age:.1f} лет")
     st.metric("Средний вес", f"{avg_weight_val:.1f} кг")
